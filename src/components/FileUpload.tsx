@@ -18,7 +18,8 @@ function FileUpload() {
       return;
     }
 
-    console.log("Upload successful");
+    const result = await response.text();
+    console.log(result);
   }
   return (
     <div className="card">
