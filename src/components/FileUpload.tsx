@@ -5,9 +5,23 @@ function FileUpload() {
   const [files, setFiles] = useState<File[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [shareLink, setShareLink] = useState("");
+  const [shareCode, setShareCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const extractCodeAndLink = (response: string) => {
+    // If response is a full URL, extract code from it
+    if (response.startsWith("http")) {
+      const url = new URL(response);
+      const code = url.pathname.split("/").pop() || response;
+      return { link: response, code };
+    }
+    // If response is just a code, generate the full link
+    const code = response.trim();
+    const link = `${window.location.origin}/s/${code}`;
+    return { link, code };
+  };
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
@@ -55,23 +69,52 @@ function FileUpload() {
         const formData = new FormData();
         formData.append("file", file);
 
+        console.log("📤 Uploading file:", {
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          timestamp: new Date().toISOString(),
+        });
+
         const response = await fetch("http://localhost:8080/api/upload", {
           method: "POST",
           body: formData,
         });
 
+        console.log("📨 Upload Response Entity:", {
+          status: response.status,
+          statusText: response.statusText,
+          headers: {
+            contentType: response.headers.get("content-type"),
+            contentLength: response.headers.get("content-length"),
+            contentDisposition: response.headers.get("content-disposition"),
+          },
+          ok: response.ok,
+          timestamp: new Date().toISOString(),
+        });
+
         if (!response.ok) {
-          console.error("Upload failed for file:", file.name);
+          console.error("❌ Upload failed for file:", file.name);
           continue;
         }
 
         const result = await response.text();
-        setShareLink(result);
+        console.log("✅ Upload response body:", result);
+
+        const { link, code } = extractCodeAndLink(result);
+        console.log("📋 Extracted upload data:", {
+          code,
+          link,
+          timestamp: new Date().toISOString(),
+        });
+
+        setShareLink(link);
+        setShareCode(code);
         setShowModal(true);
         setFiles([]);
       }
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error("❌ Upload error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -180,6 +223,7 @@ function FileUpload() {
       <ShareModal
         isOpen={showModal}
         shareLink={shareLink}
+        shareCode={shareCode}
         onClose={() => setShowModal(false)}
       />
     </>
