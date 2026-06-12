@@ -1,9 +1,9 @@
 import './App.css';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
-import FileUpload from './components/FileUpload';
-import UrlFetch from './components/UrlFetch';
+import PresignedUpload from './components/PresignedUpload';
+import PresignedDownload from './components/PresignedDownload';
 import FeatureHighlight from './components/FeatureHighlight';
 import Footer from './components/Footer';
 
@@ -14,17 +14,13 @@ function App() {
   const extractFilenameFromHeader = (contentDisposition: string): string => {
     if (!contentDisposition) return "download";
     
-    // Try to extract filename from Content-Disposition header
-    // Format: attachment; filename="filename.txt" or attachment; filename=filename.txt
     const filenameMatch = contentDisposition.match(/filename\*?=(?:"([^"]*)"|([^;\r\n]*))/);
     return filenameMatch ? (filenameMatch[1] || filenameMatch[2]) : "download";
   };
 
   useEffect(() => {
-    // Prevent running twice due to React Strict Mode
     if (downloadStartedRef.current) return;
 
-    // Handle direct download from URL like /download/CODE or /s/CODE
     const pathname = window.location.pathname;
     const match = pathname.match(/^\/(download|s)\/([^/]+)$/);
     
@@ -70,7 +66,6 @@ function App() {
           const link = document.createElement("a");
           link.href = downloadUrl;
           
-          // Extract filename from Content-Disposition header
           const contentDisposition = response.headers.get("content-disposition") || "";
           const fileName = extractFilenameFromHeader(contentDisposition);
           
@@ -98,7 +93,6 @@ function App() {
     }
   }, []);
 
-  // Show loading state while downloading
   if (isDownloading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center m-sm">
@@ -120,14 +114,11 @@ function App() {
       
       <main className="max-w-[1200px] mx-auto px-margin py-xl flex-1 w-full">
         <Hero />
-        
-        {/* Main Interaction Cards (Bento Grid Style) */}
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-md items-start">
-          <FileUpload />
-          
-          {/* Right Column: Download & Utility */}
+          <PresignedUpload />
           <div className="lg:col-span-5 flex flex-col gap-md">
-            <UrlFetch />
+            <PresignedDownload />
             <FeatureHighlight />
           </div>
         </div>
