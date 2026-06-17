@@ -3,25 +3,25 @@ const API_BASE = "http://localhost:8080/api";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PresignedUrlResponse = {
-  fileId: string;          // required — server must always return this
-  presignedUrl: string;    // required
+  fileId: string;          // stays fileId — internal ID for S3
+  presignedUrl: string;
   expiresIn?: number;
   contentType?: string;
 };
 
 type UploadConfirmationResponse = {
-  fileId: string;          // required — server must always return this
+  shortCode: string;       // changed from fileId to shortCode
 };
 
 type UploadConfirmationRequest = {
-  fileId: string;
+  fileId: string;          // stays fileId — sent to backend for S3
   fileName: string;
   fileSize: number;
   encryptionKey: string;
 };
 
 export type UploadResult = {
-  fileId: string;
+  shortCode: string;       // changed from fileId to shortCode
 };
 
 // ─── Internal helpers ────────────────────────────────────────────────────────
@@ -63,8 +63,8 @@ async function confirmUpload(
 
   const data = (await response.json()) as UploadConfirmationResponse;
 
-  if (!data.fileId) {
-    throw new Error("Server did not return a fileId after confirmation");
+  if (!data.shortCode) {   // changed from fileId to shortCode
+    throw new Error("Server did not return a shortCode after confirmation");
   }
 
   return data;
@@ -80,7 +80,6 @@ function uploadToPresignedUrl(
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
 
-    // Honour an AbortSignal if provided
     signal?.addEventListener("abort", () => {
       xhr.abort();
       reject(new DOMException("Upload aborted", "AbortError"));
@@ -123,10 +122,10 @@ export async function uploadEncryptedFile(
   onProgress?: (percent: number) => void,
   signal?: AbortSignal
 ): Promise<UploadResult> {
-  // 1. Get a presigned URL + stable fileId from the backend
+  // 1. Get presigned URL + internal fileId from backend
   const { fileId, presignedUrl, contentType } = await getPresignedUploadUrl();
 
-  // 2. Stream the encrypted blob directly to storage
+  // 2. Stream encrypted blob directly to S3
   await uploadToPresignedUrl(
     presignedUrl,
     encryptedFile,
@@ -135,13 +134,13 @@ export async function uploadEncryptedFile(
     signal
   );
 
-  // 3. Tell the backend the upload is complete
+  // 3. Tell backend upload is complete, get back shortCode
   const confirmation = await confirmUpload({
-    fileId,
+    fileId,           // send internal fileId to backend
     fileName: originalFileName,
     fileSize: encryptedFile.size,
     encryptionKey,
   });
 
-  return { fileId: confirmation.fileId };
+  return { shortCode: confirmation.shortCode }; // changed from fileId to shortCode
 }

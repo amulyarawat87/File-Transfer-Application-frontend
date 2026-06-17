@@ -4,26 +4,14 @@ const API_BASE = "http://localhost:8080/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// Backend endpoint: GET /api/download/{id}  (also reachable via /s/{id})
-// Returns: the decrypted file as a binary stream with Content-Disposition header.
-// Decryption is handled server-side using the stored encryption key.
-
 type DownloadStatus = "idle" | "fetching" | "done" | "error";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Parses the filename from a Content-Disposition header.
- * Handles both:
- *   filename="report.pdf"
- *   filename*=UTF-8''report%20final.pdf
- */
 function parseFileName(contentDisposition: string, fallbackId: string): string {
-  // Prefer filename* (RFC 5987, supports unicode/encoded names)
   const rfc5987Match = contentDisposition.match(/filename\*=(?:UTF-8'')?([^;\r\n]+)/i);
   if (rfc5987Match) return decodeURIComponent(rfc5987Match[1].trim());
 
-  // Fall back to plain filename="..."
   const plainMatch = contentDisposition.match(/filename="?([^";\r\n]+)"?/i);
   if (plainMatch) return plainMatch[1].trim();
 
@@ -38,25 +26,23 @@ function triggerBrowserDownload(blob: Blob, fileName: string) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  // Defer revoke to give the browser time to start the download
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 function PresignedDownload() {
-  const [fileId, setFileId] = useState("");
+  const [shortCode, setShortCode] = useState("");   // was fileId
   const [status, setStatus] = useState<DownloadStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
   const isLoading = status === "fetching";
-
   const statusLabel = status === "fetching" ? "Downloading…" : "Download File";
 
   const handleDownload = async () => {
-    const trimmedId = fileId.trim();
-    if (!trimmedId) {
-      setError("Please enter a File ID.");
+    const trimmedCode = shortCode.trim();           // was fileId.trim()
+    if (!trimmedCode) {
+      setError("Please enter a Share Code.");       // was "File ID"
       return;
     }
 
@@ -64,34 +50,25 @@ function PresignedDownload() {
     setStatus("fetching");
 
     try {
-      // Hits: GET /api/download/{id}  (mapped from /s/{id} too)
-      // Backend fetches from S3, decrypts with stored key, streams back the file.
-      const response = await fetch(`${API_BASE}/download/${trimmedId}`);
+      const response = await fetch(`${API_BASE}/download/${trimmedCode}`);
 
       if (response.status === 404) {
-        throw new Error("File not found or has expired. Check the ID and try again.");
+        throw new Error("File not found or has expired. Check the code and try again.");
       }
       if (!response.ok) {
         throw new Error(`Download failed: ${response.status} ${response.statusText}`);
       }
 
-      // Read the full response body as a Blob
       const blob = await response.blob();
-      console.log("📦 File received:", blob.size, "bytes");
 
-      // Parse the original filename from the response header
       const contentDisposition = response.headers.get("content-disposition") ?? "";
-      const fileName = parseFileName(contentDisposition, trimmedId);
-      console.log("📄 Filename:", fileName);
+      const fileName = parseFileName(contentDisposition, trimmedCode);
 
-      // Trigger the browser Save dialog
       triggerBrowserDownload(blob, fileName);
 
       setStatus("done");
-      console.log("✅ Download complete:", fileName);
 
     } catch (err) {
-      console.error("❌ Download error:", err);
       setError(err instanceof Error ? err.message : "Download failed. Please try again.");
       setStatus("error");
     }
@@ -118,12 +95,12 @@ function PresignedDownload() {
           role="alert"
           className="mb-md p-sm flex items-start gap-sm bg-error/10 border border-error text-error rounded-lg text-sm"
         >
-          <span className="material-symbols-outlined text-[18px] flex-shrink-0 mt-[1px]">error</span>
+          <span className="material-symbols-outlined text-[18px] shrink-0 mt-px">error</span>
           <span>{error}</span>
           <button
             aria-label="Dismiss error"
             onClick={() => setError(null)}
-            className="ml-auto flex-shrink-0 hover:opacity-70"
+            className="ml-auto shrink-0 hover:opacity-70"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
@@ -140,21 +117,21 @@ function PresignedDownload() {
 
       <div className="space-y-md">
 
-        {/* File ID input */}
+        {/* Share Code input */}
         <div>
           <label
-            htmlFor="file-id-input"
+            htmlFor="share-code-input"
             className="block text-sm font-label-bold text-on-surface-variant mb-xs"
           >
-            File ID
+            Share Code
           </label>
           <input
-            id="file-id-input"
+            id="share-code-input"
             type="text"
-            placeholder="Paste the file ID from your share link"
-            value={fileId}
+            placeholder="Paste the short code from your share link"
+            value={shortCode}
             onChange={(e) => {
-              setFileId(e.target.value);
+              setShortCode(e.target.value);
               if (error) setError(null);
               if (status === "done" || status === "error") setStatus("idle");
             }}
@@ -170,7 +147,7 @@ function PresignedDownload() {
             aria-live="polite"
             className="flex items-center gap-sm text-sm text-on-surface-variant"
           >
-            <span className="inline-block w-4 h-4 border-2 border-on-surface-variant/30 border-t-on-surface-variant rounded-full animate-spin flex-shrink-0" />
+            <span className="inline-block w-4 h-4 border-2 border-on-surface-variant/30 border-t-on-surface-variant rounded-full animate-spin shrink-0" />
             {statusLabel}
           </div>
         )}
@@ -179,7 +156,7 @@ function PresignedDownload() {
         <button
           type="button"
           onClick={handleDownload}
-          disabled={!fileId.trim() || isLoading}
+          disabled={!shortCode.trim() || isLoading}
           className="w-full py-md bg-primary text-on-primary font-headline-md text-body-base rounded-xxl hover:brightness-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md active:scale-[0.98]"
         >
           {isLoading && (

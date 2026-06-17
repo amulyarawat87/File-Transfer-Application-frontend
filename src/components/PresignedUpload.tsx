@@ -105,7 +105,7 @@ function PresignedUpload() {
         console.log("✅ Encryption key generated");
       } catch (err) {
         console.error("❌ Failed to generate encryption key:", err);
-        throw new Error("Failed to initialize encryption. Please try again.");
+        throw new Error("Failed to initialize encryption. Please try again.", { cause: err });
       }
 
       for (const { file } of entries) {
@@ -131,10 +131,10 @@ function PresignedUpload() {
           (progress) => setUploadProgress(Math.round(progress))
         );
 
-        console.log("✅ File uploaded:", uploadResponse.fileId);
-
-        setShareLink(`${window.location.origin}/s/${uploadResponse.fileId}`);
-        setShareCode(uploadResponse.fileId);
+        
+        console.log("✅ File uploaded:", uploadResponse.shortCode);
+        setShareLink(`${window.location.origin}/s/${uploadResponse.shortCode}`);
+        setShareCode(uploadResponse.shortCode);
         setEntries([]);
         setStatus("done");
         setShowModal(true);
