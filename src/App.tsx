@@ -27,9 +27,10 @@ function App() {
     if (match) {
       const code = match[2];
       downloadStartedRef.current = true;
-      setIsDownloading(true);
+     
       
       const downloadFile = async () => {
+        setIsDownloading(true);
         try {
           console.log("⬇️ Starting direct URL download with code:", code);
 
@@ -112,7 +113,7 @@ function App() {
     <div className="min-h-screen bg-background flex flex-col m-sm">
       <Header />
       
-      <main className="max-w-[1200px] mx-auto px-margin py-xl flex-1 w-full">
+      <main className="max-w-300 mx-auto px-margin py-xl flex-1 w-full">
         <Hero />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-md items-start">

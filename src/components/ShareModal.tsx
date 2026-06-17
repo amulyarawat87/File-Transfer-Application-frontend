@@ -24,7 +24,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, shareLink, shareCode, o
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-margin bg-on-surface/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-100 flex items-center justify-center p-margin bg-on-surface/40 backdrop-blur-sm">
       <div className="bg-surface-container-lowest rounded-xxl shadow-2xl w-full max-w-2xl border border-outline-variant p-md">
         <div className="flex justify-between items-center mb-md">
           <div className="flex items-center gap-sm">

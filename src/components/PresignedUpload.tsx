@@ -183,12 +183,12 @@ function PresignedUpload() {
             role="alert"
             className="mb-md p-sm flex items-start gap-sm bg-error/10 border border-error text-error rounded-lg text-sm"
           >
-            <span className="material-symbols-outlined text-[18px] flex-shrink-0 mt-[1px]">error</span>
+            <span className="material-symbols-outlined text-[18px] shrink-0 mt-px">error</span>
             <span>{error}</span>
             <button
               aria-label="Dismiss error"
               onClick={() => setError(null)}
-              className="ml-auto flex-shrink-0 hover:opacity-70"
+              className="ml-auto shrink-0 hover:opacity-70"
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
@@ -266,13 +266,13 @@ function PresignedUpload() {
                   className="flex items-center justify-between p-sm bg-surface-container-low border border-outline-variant rounded-lg"
                 >
                   <div className="flex items-center gap-sm min-w-0">
-                    <span className="material-symbols-outlined text-on-surface-variant flex-shrink-0 text-[20px]">
+                    <span className="material-symbols-outlined text-on-surface-variant shrink-0 text-[20px]">
                       description
                     </span>
                     <span className="font-body-sm text-body-sm text-on-surface truncate">
                       {file.name}
                     </span>
-                    <span className="font-body-sm text-body-sm text-on-surface-variant flex-shrink-0">
+                    <span className="font-body-sm text-body-sm text-on-surface-variant shrink-0">
                       {formatBytes(file.size)}
                     </span>
                   </div>
@@ -281,7 +281,7 @@ function PresignedUpload() {
                     onClick={() => removeEntry(id)}
                     aria-label={`Remove ${file.name}`}
                     disabled={isLoading}
-                    className="text-error hover:text-error/70 flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="text-error hover:text-error/70 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <span className="material-symbols-outlined text-[20px]">close</span>
                   </button>
