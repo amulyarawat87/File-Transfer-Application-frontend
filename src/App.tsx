@@ -6,7 +6,10 @@ import PresignedUpload from './components/PresignedUpload';
 import PresignedDownload from './components/PresignedDownload';
 import FeatureHighlight from './components/FeatureHighlight';
 import Footer from './components/Footer';
-import { API_BASE } from  './config/api';
+
+
+const API_BASE = import.meta.env.VITE_API_BASE;
+console.log(import.meta.env.VITE_API_BASE);
 
 function App() {
   const [isDownloading, setIsDownloading] = useState(false);

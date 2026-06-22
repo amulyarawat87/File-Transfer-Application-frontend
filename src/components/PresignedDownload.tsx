@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const API_BASE = import.meta.env.API_BASE;
+const API_BASE = import.meta.env.VITE_API_BASE;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
