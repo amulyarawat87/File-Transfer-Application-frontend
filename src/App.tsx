@@ -6,6 +6,7 @@ import PresignedUpload from './components/PresignedUpload';
 import PresignedDownload from './components/PresignedDownload';
 import FeatureHighlight from './components/FeatureHighlight';
 import Footer from './components/Footer';
+import { API_BASE } from  './config/api';
 
 function App() {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -34,7 +35,7 @@ function App() {
         try {
           console.log("⬇️ Starting direct URL download with code:", code);
 
-          const response = await fetch(`http://localhost:8080/api/download/${code}`, {
+          const response = await fetch(`${API_BASE}/download/${code}`, {
             method: "GET",
           });
 
