@@ -6,4 +6,3 @@ Dockerfile
 README.md
 .vscode
 .env
-.env.*
