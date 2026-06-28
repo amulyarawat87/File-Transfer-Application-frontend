@@ -14,6 +14,8 @@ interface FileEntry {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500 MB
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -42,8 +44,25 @@ function PresignedUpload() {
   // ── File management ─────────────────────────────────────────────────────────
 
   const addFiles = useCallback((incoming: File[]) => {
-    const newEntries = incoming.map((file) => ({ file, id: nextId() }));
-    setEntries((prev) => [...prev, ...newEntries]);
+    // TODO: Support multiple file uploads in future
+    // For now, only single file upload is supported
+    // When adding batch upload support:
+    // 1. Remove the single file restriction below
+    // 2. Handle progress tracking per file
+    // 3. Update ShareModal to show multiple share links
+    
+    const file = incoming[0]; // Only take the first file for now
+    
+    if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE) {
+      setError(
+        `File size exceeds 500 MB limit. Please upload a smaller file.`
+      );
+      return;
+    }
+
+    setEntries([{ file, id: nextId() }]); // Reset entries to single file
     setError(null);
   }, []);
 
@@ -131,13 +150,21 @@ function PresignedUpload() {
           (progress) => setUploadProgress(Math.round(progress))
         );
 
-        
+
         console.log("✅ File uploaded:", uploadResponse.shortCode);
         setShareLink(`${window.location.origin}/s/${uploadResponse.shortCode}`);
         setShareCode(uploadResponse.shortCode);
         setEntries([]);
         setStatus("done");
         setShowModal(true);
+
+        // TODO: Multiple uploads support in future
+        // For now, only single file upload is supported
+        // In the future, we'll:
+        // 1. Upload all files in the loop
+        // 2. Collect all share links
+        // 3. Show a summary modal with all file IDs
+        break; // Currently support only single file upload
       }
     } catch (err) {
       console.error("❌ Upload error:", err);
@@ -246,7 +273,8 @@ function PresignedUpload() {
           <input
             ref={fileInputRef}
             type="file"
-            multiple
+            // TODO: Enable multiple file selection when adding batch upload support
+            // multiple
             onChange={handleFileSelect}
             className="hidden"
             aria-hidden="true"
