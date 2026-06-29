@@ -1,0 +1,33 @@
+name: Deploy Frontend to EC2
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build and Deploy Frontend
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          script: |
+            cd /home/ec2-user/file-transfer-app/File-Transfer-Application-frontend
+            git pull origin main
+            npm install
+            npm run build
+            docker build -t file-transfer-frontend .
+            sudo docker stop file-transfer-frontend || true
+            sudo docker rm file-transfer-frontend || true
+            sudo docker run -d \
+              --restart=always \
+              --name file-transfer-frontend \
+              -p 3000:80 \
+              file-transfer-frontend
+            echo "Frontend deployed successfully!"
