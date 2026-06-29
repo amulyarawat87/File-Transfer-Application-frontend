@@ -18,20 +18,33 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
+            # Exit immediately if any command fails
+            set -euxo pipefail
+
             cd /home/ec2-user/file-transfer-app/File-Transfer-Application-frontend
-            
+
             # Reset local changes and pull latest
             git fetch origin main
             git reset --hard origin/main
-            
+
+            # Install dependencies
             npm install
+
+            # Build the frontend (workflow stops here if build fails)
             npm run build
+
+            # Build Docker image
             docker build -t file-transfer-frontend .
+
+            # Stop and remove existing container if it exists
             sudo docker stop file-transfer-frontend || true
             sudo docker rm file-transfer-frontend || true
+
+            # Run new container
             sudo docker run -d \
               --restart=always \
               --name file-transfer-frontend \
               -p 3000:80 \
               file-transfer-frontend
-            echo "Frontend deployed successfully!"
+
+            echo "✅ Frontend deployed successfully!"
