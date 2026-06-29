@@ -124,7 +124,7 @@ function PresignedUpload() {
         console.log("✅ Encryption key generated");
       } catch (err) {
         console.error("❌ Failed to generate encryption key:", err);
-        throw new Error("Failed to initialize encryption. Please try again.", { cause: err });
+        throw new Error("Failed to initialize encryption -- Please try again.", { cause: err });
       }
 
       for (const { file } of entries) {
