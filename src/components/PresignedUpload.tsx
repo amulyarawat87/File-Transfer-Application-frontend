@@ -14,7 +14,7 @@ interface FileEntry {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500 MB
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -57,7 +57,7 @@ function PresignedUpload() {
 
     if (file.size > MAX_FILE_SIZE) {
       setError(
-        `File size exceeds 50 MB limit. Please upload a smaller file.`
+        `File size exceeds 500 MB limit. Please upload a smaller file.`
       );
       return;
     }
