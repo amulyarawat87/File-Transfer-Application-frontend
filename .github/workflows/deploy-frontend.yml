@@ -19,7 +19,11 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
             cd /home/ec2-user/file-transfer-app/File-Transfer-Application-frontend
-            git pull origin main
+            
+            # Reset local changes and pull latest
+            git fetch origin main
+            git reset --hard origin/main
+            
             npm install
             npm run build
             docker build -t file-transfer-frontend .
