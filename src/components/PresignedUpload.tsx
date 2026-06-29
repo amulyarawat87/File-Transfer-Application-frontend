@@ -57,7 +57,7 @@ function PresignedUpload() {
 
     if (file.size > MAX_FILE_SIZE) {
       setError(
-        `File size exceeds 500 MB limit. Please upload a smaller file.`
+        `File size exceeds 50 MB limit. Please upload a smaller file.`
       );
       return;
     }
