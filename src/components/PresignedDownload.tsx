@@ -1,21 +1,19 @@
 import { useState } from "react";
 import { API_BASE } from "../services/apiBase";
+import * as encryptionService from "../services/encryptionService";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type DownloadStatus = "idle" | "fetching" | "done" | "error";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function parseFileName(contentDisposition: string, fallbackId: string): string {
-  const rfc5987Match = contentDisposition.match(/filename\*=(?:UTF-8'')?([^;\r\n]+)/i);
-  if (rfc5987Match) return decodeURIComponent(rfc5987Match[1].trim());
-
-  const plainMatch = contentDisposition.match(/filename="?([^";\r\n]+)"?/i);
-  if (plainMatch) return plainMatch[1].trim();
-
-  return `file-${fallbackId}`;
+interface FileDownloadResponse {
+  resource: string;
+  fileName: string;
+  contentType: string;
+  encryptionKey: string;
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function triggerBrowserDownload(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
@@ -26,6 +24,13 @@ function triggerBrowserDownload(blob: Blob, fileName: string) {
   link.click();
   document.body.removeChild(link);
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+function decodeBase64Resource(resource: string): ArrayBuffer {
+  const base64 = resource.replace(/^data:[^,]+,/, "").replace(/\s/g, "");
+  const binary = atob(base64);
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return bytes.buffer;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -58,12 +63,27 @@ function PresignedDownload() {
         throw new Error(`Download failed: ${response.status} ${response.statusText}`);
       }
 
-      const blob = await response.blob();
+      const downloadResponse = (await response.json()) as FileDownloadResponse;
 
-      const contentDisposition = response.headers.get("content-disposition") ?? "";
-      const fileName = parseFileName(contentDisposition, trimmedCode);
+      if (
+        typeof downloadResponse.resource !== "string" ||
+        !downloadResponse.fileName ||
+        !downloadResponse.encryptionKey
+      ) {
+        throw new Error("Download response was missing encrypted file data");
+      }
 
-      triggerBrowserDownload(blob, fileName);
+      const encryptedData = decodeBase64Resource(downloadResponse.resource);
+      const key = await encryptionService.importKeyFromJson(
+        downloadResponse.encryptionKey
+      );
+      const decryptedData = await encryptionService.decryptFile(encryptedData, key);
+      const blob = encryptionService.arrayBufferToBlob(
+        decryptedData,
+        downloadResponse.contentType || "application/octet-stream"
+      );
+
+      triggerBrowserDownload(blob, downloadResponse.fileName);
 
       setStatus("done");
 
