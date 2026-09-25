@@ -3,31 +3,30 @@ import { API_BASE } from "./apiBase";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PresignedUrlResponse = {
-  fileId: string;          // stays fileId — internal ID for S3
+  fileId: string;          
   presignedUrl: string;
-  expiresIn?: number;
   contentType?: string;
 };
 
 type UploadConfirmationResponse = {
-  shortCode: string;       // changed from fileId to shortCode
+  shortCode: string;       
 };
 
 type UploadConfirmationRequest = {
-  fileId: string;          // stays fileId — sent to backend for S3
+  fileId: string;          
   fileName: string;
   fileSize: number;
   encryptionKey: string;
 };
 
 export type UploadResult = {
-  shortCode: string;       // changed from fileId to shortCode
+  shortCode: string;      
 };
 
 // ─── Internal helpers ────────────────────────────────────────────────────────
 
 async function getPresignedUploadUrl(): Promise<PresignedUrlResponse> {
-  const response = await fetch(`${API_BASE}/upload/presigned-url`);
+  const response = await fetch(`${API_BASE}/upload`);
 
   if (!response.ok) {
     throw new Error(
