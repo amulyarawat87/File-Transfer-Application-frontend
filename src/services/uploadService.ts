@@ -2,30 +2,34 @@ import { API_BASE } from "./apiBase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type PresignedUrlResponse = {
-  fileId: string;          
-  presignedUrl: string;
-  contentType?: string;
+type PresignedUploadResponse = {
+  fileId: string;
+  presignedUploadUrl: string;
+};
+
+type BackendPresignedUploadResponse = {
+  fileId?: unknown;
+  presignedPutUrl?: unknown;
 };
 
 type UploadConfirmationResponse = {
-  shortCode: string;       
+  shortCode: string;
 };
 
 type UploadConfirmationRequest = {
-  fileId: string;          
+  fileId: string;
   fileName: string;
   fileSize: number;
   encryptionKey: string;
 };
 
 export type UploadResult = {
-  shortCode: string;      
+  shortCode: string;
 };
 
 // ─── Internal helpers ────────────────────────────────────────────────────────
 
-async function getPresignedUploadUrl(): Promise<PresignedUrlResponse> {
+async function getPresignedUploadUrl(): Promise<PresignedUploadResponse> {
   const response = await fetch(`${API_BASE}/upload`);
 
   if (!response.ok) {
@@ -34,15 +38,22 @@ async function getPresignedUploadUrl(): Promise<PresignedUrlResponse> {
     );
   }
 
-  const data = (await response.json()) as PresignedUrlResponse;
+  const data = (await response.json()) as BackendPresignedUploadResponse;
+  const presignedUploadUrl = data.presignedPutUrl;
 
-  if (!data.fileId || !data.presignedUrl) {
+  if (
+    typeof data.fileId !== "string" ||
+    typeof presignedUploadUrl !== "string"
+  ) {
     throw new Error(
-      "Server response was missing required fields (fileId or presignedUrl)"
+      "Server response was missing required fields (fileId or presignedPutUrl)"
     );
   }
 
-  return data;
+  return {
+    fileId: data.fileId,
+    presignedUploadUrl,
+  };
 }
 
 async function confirmUpload(
@@ -70,7 +81,7 @@ async function confirmUpload(
 }
 
 function uploadToPresignedUrl(
-  url: string,
+  presignedUploadUrl: string,
   blob: Blob,
   contentType: string,
   onProgress?: (percent: number) => void,
@@ -106,7 +117,7 @@ function uploadToPresignedUrl(
       reject(new DOMException("Upload aborted", "AbortError"))
     );
 
-    xhr.open("PUT", url);
+    xhr.open("PUT", presignedUploadUrl);
     xhr.setRequestHeader("Content-Type", contentType);
     xhr.send(blob);
   });
@@ -122,13 +133,13 @@ export async function uploadEncryptedFile(
   signal?: AbortSignal
 ): Promise<UploadResult> {
   // 1. Get presigned URL + internal fileId from backend
-  const { fileId, presignedUrl, contentType } = await getPresignedUploadUrl();
+  const { fileId, presignedUploadUrl } = await getPresignedUploadUrl();
 
   // 2. Stream encrypted blob directly to S3
   await uploadToPresignedUrl(
-    presignedUrl,
+    presignedUploadUrl,
     encryptedFile,
-    contentType ?? (encryptedFile.type || "application/octet-stream"),
+    encryptedFile.type || "application/octet-stream",
     onProgress,
     signal
   );
@@ -141,5 +152,5 @@ export async function uploadEncryptedFile(
     encryptionKey,
   });
 
-  return { shortCode: confirmation.shortCode }; // changed from fileId to shortCode
+  return { shortCode: confirmation.shortCode };
 }

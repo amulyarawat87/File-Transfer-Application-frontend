@@ -6,18 +6,12 @@ import PresignedUpload from './components/PresignedUpload';
 import PresignedDownload from './components/PresignedDownload';
 import FeatureHighlight from './components/FeatureHighlight';
 import Footer from './components/Footer';
-import { API_BASE } from './services/apiBase';
+import * as encryptionService from './services/encryptionService';
+import * as downloadService from './services/downloadService';
 
 function App() {
   const [isDownloading, setIsDownloading] = useState(false);
   const downloadStartedRef = useRef(false);
-
-  const extractFilenameFromHeader = (contentDisposition: string): string => {
-    if (!contentDisposition) return "download";
-    
-    const filenameMatch = contentDisposition.match(/filename\*?=(?:"([^"]*)"|([^;\r\n]*))/);
-    return filenameMatch ? (filenameMatch[1] || filenameMatch[2]) : "download";
-  };
 
   useEffect(() => {
     if (downloadStartedRef.current) return;
@@ -35,55 +29,27 @@ function App() {
         try {
           console.log("⬇️ Starting direct URL download with code:", code);
 
-          const response = await fetch(`${API_BASE}/download/${code}`, {
-            method: "GET",
-          });
-
-          console.log("📨 Direct Download Response Entity:", {
-            status: response.status,
-            statusText: response.statusText,
-            headers: {
-              contentType: response.headers.get("content-type"),
-              contentLength: response.headers.get("content-length"),
-              contentDisposition: response.headers.get("content-disposition"),
-            },
-            ok: response.ok,
-            timestamp: new Date().toISOString(),
-          });
-
-          if (!response.ok) {
-            console.error("❌ Direct download failed with status:", response.status);
-            setIsDownloading(false);
-            return;
-          }
-
-          const blob = await response.blob();
-          console.log("✅ Blob received:", {
-            blobSize: blob.size,
-            blobType: blob.type,
-            timestamp: new Date().toISOString(),
-          });
+          const downloadResponse = await downloadService.downloadEncryptedFile(code);
+          const key = await encryptionService.importKeyFromJson(
+            downloadResponse.encryptionKey
+          );
+          const decryptedData = await encryptionService.decryptFile(
+            downloadResponse.encryptedData,
+            key
+          );
+          const blob = encryptionService.arrayBufferToBlob(
+            decryptedData,
+            downloadResponse.contentType || "application/octet-stream"
+          );
 
           const downloadUrl = window.URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = downloadUrl;
-          
-          const contentDisposition = response.headers.get("content-disposition") || "";
-          const fileName = extractFilenameFromHeader(contentDisposition);
-          
-          console.log("📥 Downloading file:", {
-            fileName,
-            contentDisposition,
-            timestamp: new Date().toISOString(),
-          });
-
-          link.setAttribute("download", fileName);
+          link.setAttribute("download", downloadResponse.fileName);
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          window.URL.revokeObjectURL(downloadUrl);
-          
-          console.log("✅ Direct download successful for:", fileName);
+          setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 10_000);
           setIsDownloading(false);
         } catch (error) {
           console.error("❌ Direct download error:", error);
